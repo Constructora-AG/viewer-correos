@@ -1,4 +1,3 @@
-import { get } from "@vercel/blob";
 import { gunzipSync } from "node:zlib";
 import PostalMime from "postal-mime";
 
@@ -14,10 +13,16 @@ type Indexed = { row: Row; ts: number; texto: string; dest: string; de: string }
 const INDEX_PATH = "index/index.json.gz";
 let cache: Promise<{ rows: Indexed[]; byId: Map<number, Row> }> | null = null;
 
+// Los archivos viven en el servidor privado de AG (FILES_URL), protegido con FILES_TOKEN.
 async function readBlob(pathname: string): Promise<Uint8Array<ArrayBuffer> | null> {
-  const r = await get(pathname, { access: "private" });
-  if (!r || r.statusCode !== 200) return null;
-  return new Uint8Array(await new Response(r.stream).arrayBuffer());
+  const base = process.env.FILES_URL;
+  const token = process.env.FILES_TOKEN;
+  if (!base || !token) throw new Error("FILES_URL / FILES_TOKEN no configurados");
+  const url = base.replace(/\/$/, "") + "/" + pathname.split("/").map(encodeURIComponent).join("/");
+  const r = await fetch(url, { headers: { Authorization: `Bearer ${token}` }, cache: "no-store" });
+  if (r.status === 404) return null;
+  if (!r.ok) throw new Error(`Servidor de archivos respondió ${r.status}`);
+  return new Uint8Array(await r.arrayBuffer());
 }
 
 const norm = (s: string) => s.toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "");

@@ -18,7 +18,6 @@
   },
   "homepage": "https://github.com/Constructora-AG/viewer-correos#readme",
   "dependencies": {
-    "@vercel/blob": "^2.8.2",
     "next": "^15.5.28",
     "postal-mime": "^4.0.7",
     "react": "^19.3.1",
